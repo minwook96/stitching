@@ -93,6 +93,13 @@ Lint the changed files
 pre-commit install && pre-commit run
 ```
 
+program run
+```bash
+python3 main.py
+```
+![스크린샷, 2022-09-28 16-56-07](https://user-images.githubusercontent.com/49277505/192722386-030e18e0-8315-4c67-8679-3a40196ac911.png)
+
+
 ## License
 
 [Apache License
