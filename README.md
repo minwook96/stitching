@@ -1,5 +1,7 @@
 # stitching
 
+origin : https://github.com/lukasalexanderweber/stitching
+
 A Python package for fast and robust Image Stitching.
 
 Based on opencv's [stitching
