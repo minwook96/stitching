@@ -2,6 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QThread
+from qt_material import apply_stylesheet
 import ui.ui_main as ui_main
 from onvif import ONVIFCamera
 from threadMod import StreamingThread
@@ -53,6 +54,19 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.rightButton.released.connect(lambda: self.ptzControl('stop'))
         self.zoomOutButton.released.connect(lambda: self.ptzControl('stop'))
         self.zoomInButton.released.connect(lambda: self.ptzControl('stop'))
+        self.upButton.setEnabled(False)
+        self.downButton.setEnabled(False)
+        self.leftButton.setEnabled(False)
+        self.rightButton.setEnabled(False)
+        self.zoomOutButton.setEnabled(False)
+        self.zoomInButton.setEnabled(False)
+        self.homeButton.setEnabled(False)
+        self.upButton.setEnabled(False)
+        self.downButton.setEnabled(False)
+        self.leftButton.setEnabled(False)
+        self.rightButton.setEnabled(False)
+        self.zoomOutButton.setEnabled(False)
+        self.zoomInButton.setEnabled(False)
         self.chComboBox.activated.connect(self.setCCTV)
 
         self.mStreamingThread = StreamingThread()
@@ -199,83 +213,84 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
     # PTZ 작동
     def ptzControl(self, command):
-        if command == "stop":
-            self.ptz.Stop({'ProfileToken': self.media_profile.token})
+        # if self.ptzSetting(self.chComboBox.currentText()) is True:
+            if command == "stop":
+                self.ptz.Stop({'ProfileToken': self.media_profile.token})
 
-        else:
-            if command == "up":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'PanTilt': {
-                            'x': 0,
-                            'y': 0.1
-                        },
-                        'Zoom': {
-                            'x': 0
+            else:
+                if command == "up":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'PanTilt': {
+                                'x': 0,
+                                'y': 0.1
+                            },
+                            'Zoom': {
+                                'x': 0
+                            }
                         }
-                    }
-                })
-            if command == "down":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'PanTilt': {
-                            'x': 0,
-                            'y': -0.1
-                        },
-                        'Zoom': {
-                            'x': 0
+                    })
+                if command == "down":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'PanTilt': {
+                                'x': 0,
+                                'y': -0.1
+                            },
+                            'Zoom': {
+                                'x': 0
+                            }
                         }
-                    }
-                })
-            if command == "left":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'PanTilt': {
-                            'x': -0.1,
-                            'y': 0
-                        },
-                        'Zoom': {
-                            'x': 0
+                    })
+                if command == "left":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'PanTilt': {
+                                'x': -0.1,
+                                'y': 0
+                            },
+                            'Zoom': {
+                                'x': 0
+                            }
                         }
-                    }
-                })
-            if command == "right":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'PanTilt': {
-                            'x': 0.1,
-                            'y': 0
-                        },
-                        'Zoom': {
-                            'x': 0
+                    })
+                if command == "right":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'PanTilt': {
+                                'x': 0.1,
+                                'y': 0
+                            },
+                            'Zoom': {
+                                'x': 0
+                            }
                         }
-                    }
-                })
-            if command == "home":
-                self.ptz.GotoHomePosition(
-                    {'ProfileToken': self.media_profile.token})
-            if command == "zoomIn":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'Zoom': {
-                            'x': 1
+                    })
+                if command == "home":
+                    self.ptz.GotoHomePosition(
+                        {'ProfileToken': self.media_profile.token})
+                if command == "zoomIn":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'Zoom': {
+                                'x': 1
+                            }
                         }
-                    }
-                })
-            if command == "zoomOut":
-                self.ptz.ContinuousMove({
-                    'ProfileToken': self.media_profile.token,
-                    'Velocity': {
-                        'Zoom': {
-                            'x': -1
+                    })
+                if command == "zoomOut":
+                    self.ptz.ContinuousMove({
+                        'ProfileToken': self.media_profile.token,
+                        'Velocity': {
+                            'Zoom': {
+                                'x': -1
+                            }
                         }
-                    }
-                })
+                    })
 
     def tourStart(self, ipList, rtsp, num):
         ip = ipList
@@ -371,5 +386,30 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
+    """
+    setup stylesheet
+    qt-material
+    https://pypi.org/project/qt-material/
+    ['dark_amber.xml',
+    'dark_blue.xml',
+    'dark_cyan.xml',
+    'dark_lightgreen.xml',
+    'dark_pink.xml',
+    'dark_purple.xml',
+    'dark_red.xml',
+    'dark_teal.xml',
+    'dark_yellow.xml',
+    'light_amber.xml',
+    'light_blue.xml',
+    'light_cyan.xml',
+    'light_cyan_500.xml',
+    'light_lightgreen.xml',
+    'light_pink.xml',
+    'light_purple.xml',
+    'light_red.xml',
+    'light_teal.xml',
+    'light_yellow.xml']
+    """
+    apply_stylesheet(app, theme='dark_lightgreen.xml')
     window.show()
     sys.exit(app.exec())

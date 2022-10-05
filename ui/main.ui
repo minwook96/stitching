@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1267</width>
-    <height>755</height>
+    <width>1502</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -410,6 +410,7 @@
                  <property name="font">
                   <font>
                    <family>나눔고딕</family>
+                   <pointsize>12</pointsize>
                   </font>
                  </property>
                  <property name="text">
@@ -427,6 +428,7 @@
                    <property name="font">
                     <font>
                      <family>나눔고딕</family>
+                     <pointsize>12</pointsize>
                     </font>
                    </property>
                    <property name="text">
@@ -439,6 +441,7 @@
                    <property name="font">
                     <font>
                      <family>나눔고딕</family>
+                     <pointsize>12</pointsize>
                     </font>
                    </property>
                    <property name="text">
@@ -451,6 +454,7 @@
                    <property name="font">
                     <font>
                      <family>나눔고딕</family>
+                     <pointsize>12</pointsize>
                     </font>
                    </property>
                    <property name="text">
@@ -465,6 +469,7 @@
                  <property name="font">
                   <font>
                    <family>나눔고딕</family>
+                   <pointsize>12</pointsize>
                   </font>
                  </property>
                  <property name="text">
@@ -484,6 +489,7 @@
                  <property name="font">
                   <font>
                    <family>나눔고딕</family>
+                   <pointsize>12</pointsize>
                    <weight>75</weight>
                    <bold>true</bold>
                   </font>
@@ -521,6 +527,7 @@
                  <property name="font">
                   <font>
                    <family>나눔고딕</family>
+                   <pointsize>12</pointsize>
                    <weight>75</weight>
                    <bold>true</bold>
                   </font>
