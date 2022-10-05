@@ -1,17 +1,17 @@
-import datetime
-import logging
-import os
-import sys
-from time import sleep
-import cv2
 from apscheduler.schedulers.background import BackgroundScheduler
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem
-import stitching
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QThread
 import ui.ui_main as ui_main
 from onvif import ONVIFCamera
 from threadMod import StreamingThread
+import stitching
+from time import sleep
+import datetime
+import logging
+import os
+import sys
+import cv2
 
 # 로그 생성
 logger = logging.getLogger()
@@ -292,9 +292,11 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     cap = cv2.VideoCapture(rtsp)
                     # 이미지 캡처
                     success, frame = cap.read()
-                    image_folder = "test/"
+                    image_folder = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
                     image_name = f"panorama{num+1}_{i}.jpg"
                     self.create_folder(image_folder)
+                    sleep(3)
+
                     cv2.imwrite(image_folder + image_name, frame)
 
                     sleep(3)
@@ -318,16 +320,22 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
     def panorama(self):
         print("panorama click")
+        ## 가져오고자 하는 폴더 주소
+        path="imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+        file_list=os.listdir(path)
+        ## 확장자명 입력
+        file_list_jpg=[path + file for file in file_list if file.endswith(".jpg")]
+        print(file_list_jpg)
+        image_folder = "imgs/result/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+        self.create_folder(image_folder)
         stitcher = stitching.Stitcher()
-        panoramaImage = stitcher.stitch(["test/panorama1_0.jpg", "test/panorama1_1.jpg", "test/panorama1_2.jpg",
-                                        "test/panorama1_3.jpg", "test/panorama1_4.jpg", "test/panorama1_5.png"])
-        cv2.imwrite("result.jpg", panoramaImage)
+        panoramaImage = stitcher.stitch(file_list_jpg)
+        cv2.imwrite(image_folder + "result.jpg", panoramaImage)
         sleep(2)
-        self.panoramaLabel.setPixmap(QPixmap("result.jpg").scaled(
+        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg").scaled(
             self.panoramaLabel.width(), self.panoramaLabel.height()))
 
     # 메인 탭 변경 버튼 클릭
-
     def nextpage(self):
         currentpage = self.QStackedWidget.currentIndex()
         self.QStackedWidget.setCurrentIndex(currentpage+1)
