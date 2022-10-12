@@ -27,7 +27,8 @@ stream_handler.setFormatter(formatter)
 # logger.addHandler(stream_handler)
 
 # scroll version
-#class MainWindow(QMainWindow, ui_scroll_main.Ui_MainWindow):
+# class MainWindow(QMainWindow, ui_scroll_main.Ui_MainWindow):
+
 
 class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self):
@@ -40,14 +41,14 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
         # 첫번째 탭으로 시작
         self.QStackedWidget.setCurrentIndex(0)
-        
+
         # Scroll version
         if self.scroll:
             self.scaleFactor = 0.0
             self.panoramaLabel = QLabel()
             # self.panoramaLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
             self.panoramaLabel.setScaledContents(True)
-            self.scrollArea.setWidget(self.panoramaLabel)    
+            self.scrollArea.setWidget(self.panoramaLabel)
             self.panoramaLabel.setCursor(Qt.OpenHandCursor)
             self.scrollAreaLeft.mouseMoveEvent = self.mouse_move_event_left
             self.scrollAreaLeft.mousePressEvent = self.mouse_press_event_left
@@ -62,7 +63,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.downButton.pressed.connect(lambda: self.ptz_control('down'))
         self.leftButton.pressed.connect(lambda: self.ptz_control('left'))
         self.rightButton.pressed.connect(lambda: self.ptz_control('right'))
-        self.zoomOutButton.pressed.connect(lambda: self.ptz_control('zoom_out'))
+        self.zoomOutButton.pressed.connect(
+            lambda: self.ptz_control('zoom_out'))
         self.zoomInButton.pressed.connect(lambda: self.ptz_control('zoom_in'))
         self.homeButton.clicked.connect(lambda: self.ptz_control('home'))
         self.upButton.released.connect(lambda: self.ptz_control('stop'))
@@ -87,6 +89,9 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.rightButton.setEnabled(False)
         self.zoomOutButton.setEnabled(False)
         self.zoomInButton.setEnabled(False)
+        
+        # 실행 시 최대화면
+        self.showMaximized()
 
         self.streaming_thread = StreamingThread()
         self.set_CCTV_tree()
@@ -124,25 +129,29 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
             self.ptzButton.pressed.connect(self.ptz_start)
 
     # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
+    # Gui에서 응답없음 방지하기 위해 QThread 사용
     class PTZThread(QThread):
-        def __init__(self, parent, cctv_ip, rtsp, num): # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
+        # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
+        def __init__(self, parent, cctv_ip, rtsp, num):
             super().__init__(parent)
-            self.parent = parent # self.parent를 사용하여 WindowClass 위젯을 제어할 수 있다.
+            self.parent = parent  # self.parent를 사용하여 WindowClass 위젯을 제어할 수 있다.
             self.cctv_ip = cctv_ip
             self.rtsp = rtsp
             self.num = num
-            
+
         def run(self):
             self.parent.tour_start(self.cctv_ip, self.rtsp, self.num)
 
-    def ptz_start(self):        
+    # PTZ Thread 실행, cctv ptz 여러대 동시 실행
+    def ptz_start(self):
         print(self.ip_list)
         for i in range(0, len(self.ip_list)):
-            self.ptz_Thread = self.PTZThread(self, self.ip_list[i], self.rtsp_list[i], i)
+            self.ptz_Thread = self.PTZThread(
+                self, self.ip_list[i], self.rtsp_list[i], i)
             self.threads.append(self.ptz_Thread)
             self.ptz_Thread.start()
 
-    # 화면에 영상 부착 (스레드 실행)
+    # 메인Gui화면에 영상 부착 (스레드 실행)
     def set_CCTV(self):
         # Index 0: No Channel
         if self.chComboBox.currentIndex() == 0:
@@ -234,83 +243,83 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     def ptz_control(self, command):
         # 시작 시 ptz 에러 수정완료
         # if self.ptz_setting(self.chComboBox.currentText()) is True:
-            if command == "stop":
-                self.ptz.Stop({'ProfileToken': self.media_profile.token})
+        if command == "stop":
+            self.ptz.Stop({'ProfileToken': self.media_profile.token})
 
-            else:
-                if command == "up":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'PanTilt': {
-                                'x': 0,
-                                'y': 0.1
-                            },
-                            'Zoom': {
-                                'x': 0
-                            }
+        else:
+            if command == "up":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'PanTilt': {
+                            'x': 0,
+                            'y': 0.1
+                        },
+                        'Zoom': {
+                            'x': 0
                         }
-                    })
-                if command == "down":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'PanTilt': {
-                                'x': 0,
-                                'y': -0.1
-                            },
-                            'Zoom': {
-                                'x': 0
-                            }
+                    }
+                })
+            if command == "down":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'PanTilt': {
+                            'x': 0,
+                            'y': -0.1
+                        },
+                        'Zoom': {
+                            'x': 0
                         }
-                    })
-                if command == "left":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'PanTilt': {
-                                'x': -0.1,
-                                'y': 0
-                            },
-                            'Zoom': {
-                                'x': 0
-                            }
+                    }
+                })
+            if command == "left":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'PanTilt': {
+                            'x': -0.1,
+                            'y': 0
+                        },
+                        'Zoom': {
+                            'x': 0
                         }
-                    })
-                if command == "right":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'PanTilt': {
-                                'x': 0.1,
-                                'y': 0
-                            },
-                            'Zoom': {
-                                'x': 0
-                            }
+                    }
+                })
+            if command == "right":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'PanTilt': {
+                            'x': 0.1,
+                            'y': 0
+                        },
+                        'Zoom': {
+                            'x': 0
                         }
-                    })
-                if command == "home":
-                    self.ptz.GotoHomePosition(
-                        {'ProfileToken': self.media_profile.token})
-                if command == "zoom_in":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'Zoom': {
-                                'x': 1
-                            }
+                    }
+                })
+            if command == "home":
+                self.ptz.GotoHomePosition(
+                    {'ProfileToken': self.media_profile.token})
+            if command == "zoom_in":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'Zoom': {
+                            'x': 1
                         }
-                    })
-                if command == "zoom_out":
-                    self.ptz.ContinuousMove({
-                        'ProfileToken': self.media_profile.token,
-                        'Velocity': {
-                            'Zoom': {
-                                'x': -1
-                            }
+                    }
+                })
+            if command == "zoom_out":
+                self.ptz.ContinuousMove({
+                    'ProfileToken': self.media_profile.token,
+                    'Velocity': {
+                        'Zoom': {
+                            'x': -1
                         }
-                    })
+                    }
+                })
 
     def tour_start(self, ip, rtsp, num):
         # label에 표시하는 방법 다시 고안해야함
@@ -318,7 +327,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         if self.ptz_setting(ip) is True:
             try:
                 preset = self.ptz.GetPresets({
-                'ProfileToken': self.media_profile.token
+                    'ProfileToken': self.media_profile.token
                 })
                 for i in range(0, len(preset)):
                     self.ptz.GotoPreset({
@@ -328,7 +337,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     cap = cv2.VideoCapture(rtsp)
                     # 이미지 캡처
                     success, frame = cap.read()
-                    image_folder = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+                    image_folder = "imgs/{}/".format(
+                        datetime.datetime.today().strftime("%Y-%m-%d"))
                     image_name = f"panorama{num+1}_{i}.jpg"
                     self.create_folder(image_folder)
                     sleep(3)
@@ -342,6 +352,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     eval('self.label_'+str(num+1)).setText("running")
             except:
                 logger.error("PTZ Preset")
+                
             eval('self.label_'+str(num+1)).setText("Success")
 
         else:
@@ -355,11 +366,11 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         except OSError:
             logger.error('Error: Creating directory. ' + directory_path)
 
-    #--------------------------ScrollArea--------------------------------------------
+    # --------------------------ScrollArea--------------------------------------------
     def adjust_scroll_bar(self, scrollBar, factor):
         scrollBar.setValue(int(factor * scrollBar.value()
                                + ((factor - 1) * scrollBar.pageStep() / 2)))
-        
+
     def normal_size(self):
         print("nomal")
         self.panoramaLabel.adjustSize()
@@ -380,30 +391,38 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
     def scale_image(self, factor):
         self.scaleFactor *= factor
-        self.panoramaLabel.resize(self.scaleFactor * self.panoramaLabel.pixmap().size())
+        self.panoramaLabel.resize(
+            self.scaleFactor * self.panoramaLabel.pixmap().size())
 
         self.adjust_scroll_bar(self.scrollArea.horizontalScrollBar(), factor)
         self.adjust_scroll_bar(self.scrollArea.verticalScrollBar(), factor)
 
         self.zoom_inAct.setEnabled(self.scaleFactor < 3.0)
         self.zoom_outAct.setEnabled(self.scaleFactor > 0.333)
-           
+
+    # 현재 작동안함 이유 모름
     def create_actions(self):
-        self.normal_sizeAct = QAction("&Normal Size", self, shortcut="Ctrl+S", enabled=False, triggered=self.normal_size)
-        self.zoom_inAct = QAction("Zoom &In (25%)", self, shortcut="Ctrl++", enabled=False, triggered=self.zoom_in)
-        self.zoom_outAct = QAction("Zoom &Out (25%)", self, shortcut="Ctrl+-", enabled=False, triggered=self.zoom_out)
-        self.fit_to_windowAct = QAction("&Fit to Window", self, enabled=False, checkable=True, shortcut="Ctrl+F", triggered=self.fit_to_window)    
-        
+        self.normal_sizeAct = QAction(
+            "&Normal Size", self, shortcut="Ctrl+S", enabled=False, triggered=self.normal_size)
+        self.zoom_inAct = QAction(
+            "Zoom &In (25%)", self, shortcut="Ctrl++", enabled=False, triggered=self.zoom_in)
+        self.zoom_outAct = QAction(
+            "Zoom &Out (25%)", self, shortcut="Ctrl+-", enabled=False, triggered=self.zoom_out)
+        self.fit_to_windowAct = QAction("&Fit to Window", self, enabled=False,
+                                        checkable=True, shortcut="Ctrl+F", triggered=self.fit_to_window)
+
     def update_actions(self):
-        self.normal_sizeAct.setEnabled(not self.fit_to_windowAct.isChecked())        
+        self.normal_sizeAct.setEnabled(not self.fit_to_windowAct.isChecked())
         self.zoom_inAct.setEnabled(not self.fit_to_windowAct.isChecked())
         self.zoom_outAct.setEnabled(not self.fit_to_windowAct.isChecked())
 
     def mouse_press_event_left(self, event):
         self.pressed = True
         self.panoramaLabel.setCursor(Qt.ClosedHandCursor)
-        self.initialPosX = self.scrollArea.horizontalScrollBar().value() + event.pos().x()
-        self.initialPosY = self.scrollArea.verticalScrollBar().value() + event.pos().y()
+        self.initialPosX = self.scrollArea.horizontalScrollBar().value() + \
+            event.pos().x()
+        self.initialPosY = self.scrollArea.verticalScrollBar().value() + \
+            event.pos().y()
 
     def mouse_release_event_left(self, event):
         self.pressed = False
@@ -413,34 +432,37 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
     def mouse_move_event_left(self, event):
         if self.pressed:
-            self.scrollArea.horizontalScrollBar().setValue(self.initialPosX - event.pos().x())
+            self.scrollArea.horizontalScrollBar().setValue(
+                self.initialPosX - event.pos().x())
             self.scrollArea.verticalScrollBar().setValue(self.initialPosY - event.pos().y())
-    #--------------------------ScrollArea--------------------------------------------
-           
+    # --------------------------ScrollArea--------------------------------------------
+
     def panorama_start(self):
         print("panorama click")
         # 가져오고자 하는 폴더 주소
-        path="imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+        path = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
         # path="imgs/"
-        file_list=os.listdir(path)
+        file_list = os.listdir(path)
         # 확장자명 입력
-        file_list_jpg=[path + file for file in file_list if file.endswith(".jpg")]
+        file_list_jpg = [
+            path + file for file in file_list if file.endswith(".jpg")]
         print(file_list_jpg)
-        image_folder = "imgs/result/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+        image_folder = "imgs/result/{}/".format(
+            datetime.datetime.today().strftime("%Y-%m-%d"))
         self.create_folder(image_folder)
         stitcher = stitching.Stitcher()
         panoramaImage = stitcher.stitch(file_list_jpg)
         cv2.imwrite(image_folder + "result.jpg", panoramaImage)
         sleep(2)
-        
+
         self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg"))
-        
+
         if self.scroll:
             self.scaleFactor = 1.0
-            
+
             self.fit_to_windowAct.setEnabled(True)
             self.update_actions()
-            
+
             if not self.fit_to_windowAct.isChecked():
                 self.panoramaLabel.adjustSize()
 
