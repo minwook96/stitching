@@ -1,7 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem, QLabel, QAction
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, Qt
+from PyQt5 import QtCore, QtWidgets
 from qt_material import apply_stylesheet
 import ui.ui_main as ui_main
 from onvif import ONVIFCamera
@@ -25,35 +26,54 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
 # logger.addHandler(stream_handler)
 
+# scroll version
+#class MainWindow(QMainWindow, ui_scroll_main.Ui_MainWindow):
 
 class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.threads = []
-        self.channelFile = os.path.join(os.path.abspath(''), 'channel.conf')
+        self.scroll = False
+
+        self.channel_file = os.path.join(os.path.abspath(''), 'channel.conf')
 
         # 첫번째 탭으로 시작
         self.QStackedWidget.setCurrentIndex(0)
+        
+        # Scroll version
+        if self.scroll:
+            self.scaleFactor = 0.0
+            self.panoramaLabel = QLabel()
+            # self.panoramaLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+            self.panoramaLabel.setScaledContents(True)
+            self.scrollArea.setWidget(self.panoramaLabel)    
+            self.panoramaLabel.setCursor(Qt.OpenHandCursor)
+            self.scrollAreaLeft.mouseMoveEvent = self.mouse_move_event_left
+            self.scrollAreaLeft.mousePressEvent = self.mouse_press_event_left
+            self.scrollAreaLeft.mouseReleaseEvent = self.mouse_release_event_left
+            self.create_actions()
 
         # 버튼 기능 구현
-        self.nextButton.clicked.connect(self.nextpage)
-        self.previousButton.clicked.connect(self.prevpage)
-        # self.previousButton.setEnabled(False)
-        self.panoramaButton.clicked.connect(self.panorama)
-        self.upButton.pressed.connect(lambda: self.ptzControl('up'))
-        self.downButton.pressed.connect(lambda: self.ptzControl('down'))
-        self.leftButton.pressed.connect(lambda: self.ptzControl('left'))
-        self.rightButton.pressed.connect(lambda: self.ptzControl('right'))
-        self.zoomOutButton.pressed.connect(lambda: self.ptzControl('zoomOut'))
-        self.zoomInButton.pressed.connect(lambda: self.ptzControl('zoomIn'))
-        self.homeButton.clicked.connect(lambda: self.ptzControl('home'))
-        self.upButton.released.connect(lambda: self.ptzControl('stop'))
-        self.downButton.released.connect(lambda: self.ptzControl('stop'))
-        self.leftButton.released.connect(lambda: self.ptzControl('stop'))
-        self.rightButton.released.connect(lambda: self.ptzControl('stop'))
-        self.zoomOutButton.released.connect(lambda: self.ptzControl('stop'))
-        self.zoomInButton.released.connect(lambda: self.ptzControl('stop'))
+        self.nextButton.clicked.connect(self.next_page)
+        self.previousButton.clicked.connect(self.prev_page)
+        self.panoramaButton.clicked.connect(self.panorama_start)
+        self.upButton.pressed.connect(lambda: self.ptz_control('up'))
+        self.downButton.pressed.connect(lambda: self.ptz_control('down'))
+        self.leftButton.pressed.connect(lambda: self.ptz_control('left'))
+        self.rightButton.pressed.connect(lambda: self.ptz_control('right'))
+        self.zoomOutButton.pressed.connect(lambda: self.ptz_control('zoom_out'))
+        self.zoomInButton.pressed.connect(lambda: self.ptz_control('zoom_in'))
+        self.homeButton.clicked.connect(lambda: self.ptz_control('home'))
+        self.upButton.released.connect(lambda: self.ptz_control('stop'))
+        self.downButton.released.connect(lambda: self.ptz_control('stop'))
+        self.leftButton.released.connect(lambda: self.ptz_control('stop'))
+        self.rightButton.released.connect(lambda: self.ptz_control('stop'))
+        self.zoomOutButton.released.connect(lambda: self.ptz_control('stop'))
+        self.zoomInButton.released.connect(lambda: self.ptz_control('stop'))
+        self.chComboBox.activated.connect(self.set_CCTV)
+
+        # PTZ Control Button
         self.upButton.setEnabled(False)
         self.downButton.setEnabled(False)
         self.leftButton.setEnabled(False)
@@ -67,18 +87,17 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.rightButton.setEnabled(False)
         self.zoomOutButton.setEnabled(False)
         self.zoomInButton.setEnabled(False)
-        self.chComboBox.activated.connect(self.setCCTV)
 
-        self.mStreamingThread = StreamingThread()
-        self.setCCTVTree()
+        self.streaming_thread = StreamingThread()
+        self.set_CCTV_tree()
 
     # CCTV Tree UI에 트리구조로 표시
-    def setCCTVTree(self):
+    def set_CCTV_tree(self):
         self.chTreeWidget.clear()
-        self.cctvIpList = []
-        self.rtspList = []
-        if os.path.exists(self.channelFile):
-            with open(self.channelFile, 'r') as file:
+        self.ip_list = []
+        self.rtsp_list = []
+        if os.path.exists(self.channel_file):
+            with open(self.channel_file, 'r') as file:
                 numbers = []
                 lines = file.readlines()
                 String = 'No Channel'
@@ -99,80 +118,80 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     self.chComboBox_2.addItem(cctv)
                     item.setText(0, cctv)
                     item.setText(1, rtsp)
-                    self.cctvIpList.append(ip[:-1])
-                    self.rtspList.append(rtsp)
+                    self.ip_list.append(ip[:-1])
+                    self.rtsp_list.append(rtsp)
                     self.chTreeWidget.addTopLevelItem(item)
-            self.ptzButton.pressed.connect(self.panoramaPTZ)
+            self.ptzButton.pressed.connect(self.ptz_start)
 
     # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
-    class Panorama(QThread):
-        def __init__(self, parent, cctvIp, rtsp, num): # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
+    class PTZThread(QThread):
+        def __init__(self, parent, cctv_ip, rtsp, num): # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
             super().__init__(parent)
             self.parent = parent # self.parent를 사용하여 WindowClass 위젯을 제어할 수 있다.
-            self.cctvIp = cctvIp
+            self.cctv_ip = cctv_ip
             self.rtsp = rtsp
             self.num = num
             
         def run(self):
-            self.parent.tourStart(self.cctvIp, self.rtsp, self.num)
+            self.parent.tour_start(self.cctv_ip, self.rtsp, self.num)
 
-    def panoramaPTZ(self):        
-        print(self.cctvIpList)
-        for i in range(0, len(self.cctvIpList)):
-            self.panorama = self.Panorama(self, self.cctvIpList[i], self.rtspList[i], i)
-            self.threads.append(self.panorama)
-            self.panorama.start()
+    def ptz_start(self):        
+        print(self.ip_list)
+        for i in range(0, len(self.ip_list)):
+            self.ptz_Thread = self.PTZThread(self, self.ip_list[i], self.rtsp_list[i], i)
+            self.threads.append(self.ptz_Thread)
+            self.ptz_Thread.start()
 
     # 화면에 영상 부착 (스레드 실행)
-    def setCCTV(self):
+    def set_CCTV(self):
         # Index 0: No Channel
         if self.chComboBox.currentIndex() == 0:
-            self.mStreamingThread.stop()
-            self.mStreamingThread = StreamingThread()
+            self.streaming_thread.stop()
+            self.streaming_thread = StreamingThread()
             # 라벨 초기화 스케줄러
             sched = BackgroundScheduler()
-            sched.add_job(self.clearChannel, 'date', run_date=datetime.datetime.now(
+            sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
             ) + datetime.timedelta(seconds=1), args=[self.viewLabel])
             sched.start()
         else:
-            channel, rtsp, cctvIp = self.findRtsp(self.chComboBox)
+            channel, rtsp, cctv_ip = self.find_rtsp(self.chComboBox)
             if rtsp != '' and channel != '':
-                self.mStreamingThread.stop()
-                self.mStreamingThread.wait(1)
-                self.mStreamingThread = StreamingThread()
-                self.mStreamingThread.setRtsp(rtsp)
-                self.mStreamingThread.setSize(
+                self.streaming_thread.stop()
+                self.streaming_thread.wait(1)
+                self.streaming_thread = StreamingThread()
+                self.streaming_thread.setRtsp(rtsp)
+                self.streaming_thread.setSize(
                     self.viewLabel.width(), self.viewLabel.height())
-                self.mStreamingThread.setLabel(self.viewLabel)
-                self.mStreamingThread.start()
-                self.ptzSetting(cctvIp)
+                self.streaming_thread.setLabel(self.viewLabel)
+                self.streaming_thread.start()
+                self.ptz_setting(cctv_ip)
                 logger.info("Channel Streaming Success")
 
     # NoChannel => 라벨 초기화
-    def clearChannel(self, cctv):
+    def clear_channel(self, cctv):
         cctv.clear()
         cctv.setText('No Channel')
 
     # ComboBox에서 CCTV 선택했을 때 rtsp 주소 검색
-    def findRtsp(self, qComboBox):
+    def find_rtsp(self, qComboBox):
         rtsp = ''
-        if os.path.exists(self.channelFile):
-            with open(self.channelFile, 'r') as file:
+        if os.path.exists(self.channel_file):
+            with open(self.channel_file, 'r') as file:
                 lines = file.readlines()
                 for line in lines:
                     sLine = line.split(',')
                     if sLine[0] == qComboBox.currentText():
                         rtsp = sLine[1].strip()
-                        cctvIp = sLine[2].strip()
+                        cctv_ip = sLine[2].strip()
                         break
         cctv = sLine[0]
-        return cctv, rtsp, cctvIp
+        return cctv, rtsp, cctv_ip
 
     # PTZ 카메라 기본 변수 선언
-    def ptzSetting(self, cctvIp):
-        if cctvIp != "":
+    def ptz_setting(self, cctv_ip):
+        if cctv_ip != "":
             try:
-                cam = ONVIFCamera(cctvIp, 80, "admin", "tmzkdl123$")
+                cam = ONVIFCamera(cctv_ip, 80, "admin", "tmzkdl123$")
                 media = cam.create_media_service()
                 self.ptz = cam.create_ptz_service()
                 self.media_profile = media.GetProfiles()[0]
@@ -212,8 +231,9 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 return False
 
     # PTZ 작동
-    def ptzControl(self, command):
-        # if self.ptzSetting(self.chComboBox.currentText()) is True:
+    def ptz_control(self, command):
+        # 시작 시 ptz 에러 수정완료
+        # if self.ptz_setting(self.chComboBox.currentText()) is True:
             if command == "stop":
                 self.ptz.Stop({'ProfileToken': self.media_profile.token})
 
@@ -273,7 +293,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 if command == "home":
                     self.ptz.GotoHomePosition(
                         {'ProfileToken': self.media_profile.token})
-                if command == "zoomIn":
+                if command == "zoom_in":
                     self.ptz.ContinuousMove({
                         'ProfileToken': self.media_profile.token,
                         'Velocity': {
@@ -282,7 +302,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                             }
                         }
                     })
-                if command == "zoomOut":
+                if command == "zoom_out":
                     self.ptz.ContinuousMove({
                         'ProfileToken': self.media_profile.token,
                         'Velocity': {
@@ -292,9 +312,10 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                         }
                     })
 
-    def tourStart(self, ipList, rtsp, num):
-        ip = ipList
-        if self.ptzSetting(ip) is True:
+    def tour_start(self, ip, rtsp, num):
+        # label에 표시하는 방법 다시 고안해야함
+        ip = ip
+        if self.ptz_setting(ip) is True:
             try:
                 preset = self.ptz.GetPresets({
                 'ProfileToken': self.media_profile.token
@@ -318,9 +339,10 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
                     self.ptz.GotoHomePosition(
                         {'ProfileToken': self.media_profile.token})
-                    eval('self.label_'+str(num+1)).setText("Success")
+                    eval('self.label_'+str(num+1)).setText("running")
             except:
                 logger.error("PTZ Preset")
+            eval('self.label_'+str(num+1)).setText("Success")
 
         else:
             eval('self.label_'+str(num+1)).setText("Fail")
@@ -333,12 +355,75 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         except OSError:
             logger.error('Error: Creating directory. ' + directory_path)
 
-    def panorama(self):
+    #--------------------------ScrollArea--------------------------------------------
+    def adjust_scroll_bar(self, scrollBar, factor):
+        scrollBar.setValue(int(factor * scrollBar.value()
+                               + ((factor - 1) * scrollBar.pageStep() / 2)))
+        
+    def normal_size(self):
+        print("nomal")
+        self.panoramaLabel.adjustSize()
+        self.scaleFactor = 1.0
+
+    def zoom_in(self):
+        self.scale_image(1.25)
+
+    def zoom_out(self):
+        self.scale_image(0.8)
+
+    def fit_to_window(self):
+        fit_to_window = self.fit_to_windowAct.isChecked()
+        self.scrollArea.setWidgetResizable(fit_to_window)
+        if not fit_to_window:
+            self.normal_size()
+        self.update_actions()
+
+    def scale_image(self, factor):
+        self.scaleFactor *= factor
+        self.panoramaLabel.resize(self.scaleFactor * self.panoramaLabel.pixmap().size())
+
+        self.adjust_scroll_bar(self.scrollArea.horizontalScrollBar(), factor)
+        self.adjust_scroll_bar(self.scrollArea.verticalScrollBar(), factor)
+
+        self.zoom_inAct.setEnabled(self.scaleFactor < 3.0)
+        self.zoom_outAct.setEnabled(self.scaleFactor > 0.333)
+           
+    def create_actions(self):
+        self.normal_sizeAct = QAction("&Normal Size", self, shortcut="Ctrl+S", enabled=False, triggered=self.normal_size)
+        self.zoom_inAct = QAction("Zoom &In (25%)", self, shortcut="Ctrl++", enabled=False, triggered=self.zoom_in)
+        self.zoom_outAct = QAction("Zoom &Out (25%)", self, shortcut="Ctrl+-", enabled=False, triggered=self.zoom_out)
+        self.fit_to_windowAct = QAction("&Fit to Window", self, enabled=False, checkable=True, shortcut="Ctrl+F", triggered=self.fit_to_window)    
+        
+    def update_actions(self):
+        self.normal_sizeAct.setEnabled(not self.fit_to_windowAct.isChecked())        
+        self.zoom_inAct.setEnabled(not self.fit_to_windowAct.isChecked())
+        self.zoom_outAct.setEnabled(not self.fit_to_windowAct.isChecked())
+
+    def mouse_press_event_left(self, event):
+        self.pressed = True
+        self.panoramaLabel.setCursor(Qt.ClosedHandCursor)
+        self.initialPosX = self.scrollArea.horizontalScrollBar().value() + event.pos().x()
+        self.initialPosY = self.scrollArea.verticalScrollBar().value() + event.pos().y()
+
+    def mouse_release_event_left(self, event):
+        self.pressed = False
+        self.panoramaLabel.setCursor(Qt.OpenHandCursor)
+        self.initialPosX = self.scrollArea.horizontalScrollBar().value()
+        self.initialPosY = self.scrollArea.verticalScrollBar().value()
+
+    def mouse_move_event_left(self, event):
+        if self.pressed:
+            self.scrollArea.horizontalScrollBar().setValue(self.initialPosX - event.pos().x())
+            self.scrollArea.verticalScrollBar().setValue(self.initialPosY - event.pos().y())
+    #--------------------------ScrollArea--------------------------------------------
+           
+    def panorama_start(self):
         print("panorama click")
-        ## 가져오고자 하는 폴더 주소
+        # 가져오고자 하는 폴더 주소
         path="imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+        # path="imgs/"
         file_list=os.listdir(path)
-        ## 확장자명 입력
+        # 확장자명 입력
         file_list_jpg=[path + file for file in file_list if file.endswith(".jpg")]
         print(file_list_jpg)
         image_folder = "imgs/result/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
@@ -347,41 +432,31 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         panoramaImage = stitcher.stitch(file_list_jpg)
         cv2.imwrite(image_folder + "result.jpg", panoramaImage)
         sleep(2)
-        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg").scaled(
-            self.panoramaLabel.width(), self.panoramaLabel.height()))
+        
+        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg"))
+        
+        if self.scroll:
+            self.scaleFactor = 1.0
+            
+            self.fit_to_windowAct.setEnabled(True)
+            self.update_actions()
+            
+            if not self.fit_to_windowAct.isChecked():
+                self.panoramaLabel.adjustSize()
 
     # 메인 탭 변경 버튼 클릭
-    def nextpage(self):
+    def next_page(self):
         currentpage = self.QStackedWidget.currentIndex()
         self.QStackedWidget.setCurrentIndex(currentpage+1)
         if currentpage+1 > 2:
             self.QStackedWidget.setCurrentIndex(0)
-            # self.nextButton.setEnabled(False)
-            # self.previousButton.setEnabled(True)
-        # else:
-        #     self.previousButton.setEnabled(True)
-        #     self.nextButton.setEnabled(True)
 
-    def prevpage(self):
+    def prev_page(self):
         currentpage = self.QStackedWidget.currentIndex()
         self.QStackedWidget.setCurrentIndex(currentpage-1)
         if currentpage-1 < 0:
             self.QStackedWidget.setCurrentIndex(2)
-        #     self.previousButton.setEnabled(False)
-        #     self.nextButton.setEnabled(True)
-        # else:
-        #     self.previousButton.setEnabled(True)
-        #     self.nextButton.setEnabled(True)
 
-
-# class Panorama(QThread):
-#     def __init__(self, cctvIpList):
-#         super().__init__(cctvIpList)
-#         self.temp = cctvIpList
-        
-
-#     def run(self):
-#         print(self.temp.cctvIpList)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -400,7 +475,7 @@ if __name__ == "__main__":
     'dark_teal.xml',
     'dark_yellow.xml',
     'light_amber.xml',
-    'light_blue.xml',
+    'light_blue.xml', --> secondaryLightColor #000000 변경해야함
     'light_cyan.xml',
     'light_cyan_500.xml',
     'light_lightgreen.xml',
@@ -410,6 +485,6 @@ if __name__ == "__main__":
     'light_teal.xml',
     'light_yellow.xml']
     """
-    apply_stylesheet(app, theme='dark_lightgreen.xml')
+    apply_stylesheet(app, theme='light_blue.xml')
     window.show()
     sys.exit(app.exec())
