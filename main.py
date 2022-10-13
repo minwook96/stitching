@@ -93,7 +93,17 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         # 실행 시 최대화면
         self.showMaximized()
 
-        self.streaming_thread = StreamingThread()
+        self.streaming_thread = {}
+        self.streaming_thread['1'] = StreamingThread()
+        self.streaming_thread['2'] = StreamingThread()
+        self.streaming_thread['3'] = StreamingThread()
+        self.streaming_thread['4'] = StreamingThread()
+        self.streaming_thread['5'] = StreamingThread()
+        self.streaming_thread['6'] = StreamingThread()
+        self.streaming_thread['7'] = StreamingThread()
+        self.streaming_thread['8'] = StreamingThread()
+        self.streaming_thread['9'] = StreamingThread()
+        self.streaming_thread['10'] = StreamingThread()
         self.set_CCTV_tree()
 
     # CCTV Tree UI에 트리구조로 표시
@@ -115,8 +125,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     sLine = line.split(',')
                     numbers.append([sLine[0], sLine[1], sLine[2]])
 
-                numbers.sort()
-
+                # numbers.sort()
+                i = 1
                 for cctv, rtsp, ip in numbers:
                     item = QTreeWidgetItem(self.chTreeWidget)
                     self.chComboBox.addItem(cctv)
@@ -126,6 +136,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     self.ip_list.append(ip[:-1])
                     self.rtsp_list.append(rtsp)
                     self.chTreeWidget.addTopLevelItem(item)
+                    self.set_CCTV(cctv, rtsp, ip, i)
+                    i = i + 1
             self.ptzButton.pressed.connect(self.ptz_start)
 
     # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
@@ -152,29 +164,42 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
             self.ptz_Thread.start()
 
     # 메인Gui화면에 영상 부착 (스레드 실행)
-    def set_CCTV(self):
+    def set_CCTV(self, channel, rtsp, cctv_ip, num):
         # Index 0: No Channel
-        if self.chComboBox.currentIndex() == 0:
-            self.streaming_thread.stop()
-            self.streaming_thread = StreamingThread()
-            # 라벨 초기화 스케줄러
-            sched = BackgroundScheduler()
-            sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
-            ) + datetime.timedelta(seconds=1), args=[self.viewLabel])
-            sched.start()
-        else:
-            channel, rtsp, cctv_ip = self.find_rtsp(self.chComboBox)
-            if rtsp != '' and channel != '':
-                self.streaming_thread.stop()
-                self.streaming_thread.wait(1)
-                self.streaming_thread = StreamingThread()
-                self.streaming_thread.setRtsp(rtsp)
-                self.streaming_thread.setSize(
-                    self.viewLabel.width(), self.viewLabel.height())
-                self.streaming_thread.setLabel(self.viewLabel)
-                self.streaming_thread.start()
-                self.ptz_setting(cctv_ip)
-                logger.info("Channel Streaming Success")
+        # if self.chComboBox.currentIndex() == 0:
+        #     self.streaming_thread.stop()
+        #     self.streaming_thread = StreamingThread()
+        #     # 라벨 초기화 스케줄러
+        #     sched = BackgroundScheduler()
+        #     sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
+        #     ) + datetime.timedelta(seconds=1), args=[self.viewLabel])
+        #     sched.start()
+        # else:
+        #     channel, rtsp, cctv_ip = self.find_rtsp(self.chComboBox)
+        #     if rtsp != '' and channel != '':
+        #         self.streaming_thread.stop()
+        #         self.streaming_thread.wait(1)
+        #         self.streaming_thread = StreamingThread()
+        #         self.streaming_thread.setRtsp(rtsp)
+        #         self.streaming_thread.setSize(
+        #             self.viewLabel.width(), self.viewLabel.height())
+        #         self.streaming_thread.setLabel(self.viewLabel)
+        #         self.streaming_thread.start()
+        #         self.ptz_setting(cctv_ip)
+        #         logger.info("Channel Streaming Success")
+     
+        print(num)
+        num = str(num)
+        self.streaming_thread[num].stop()
+        self.streaming_thread[num].wait(1)
+        self.streaming_thread[num] = StreamingThread()
+        self.streaming_thread[num].setRtsp(rtsp)
+        self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
+        self.streaming_thread[num].setSize(self.viewLabel_1.width(), self.viewLabel_1.height())
+        self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
+        self.streaming_thread[num].start()
+        self.ptz_setting(cctv_ip)
+        logger.info("Channel Streaming Success")
 
     # NoChannel => 라벨 초기화
     def clear_channel(self, cctv):
@@ -184,6 +209,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     # ComboBox에서 CCTV 선택했을 때 rtsp 주소 검색
     def find_rtsp(self, qComboBox):
         rtsp = ''
+        cctv_ip = ''
         if os.path.exists(self.channel_file):
             with open(self.channel_file, 'r') as file:
                 lines = file.readlines()
@@ -455,7 +481,9 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         cv2.imwrite(image_folder + "result.jpg", panoramaImage)
         sleep(2)
 
-        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg"))
+        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg").scaled(
+            self.panoramaLabel.width(), self.panoramaLabel.height()))
+                
 
         if self.scroll:
             self.scaleFactor = 1.0
