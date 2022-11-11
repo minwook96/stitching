@@ -1,10 +1,10 @@
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, QSize
 from PyQt5.QtGui import QImage, QPixmap
+import tkinter as tk
 import cv2
 
 # 영상 실시간 스트리밍 스레드
 class StreamingThread(QThread):
-
     def __init__(self):
         super(StreamingThread, self).__init__()
         self.running = True
@@ -21,6 +21,16 @@ class StreamingThread(QThread):
     
     def setLabel(self, label):
         self.label_screen = label
+    
+    def setFullSize(self, camUrl):
+        self.camUrl = camUrl
+        self.windowScreenSize()
+    
+    def windowScreenSize(self):
+        root = tk.Tk()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight() - 5
+        self.Qsize = QSize(screen_width, screen_height) 
         
     def run(self):
         try:
@@ -39,7 +49,7 @@ class StreamingThread(QThread):
                         self.label_screen.setPixmap(pixmap)
                         #time.sleep(.01)
             else:
-                print("RTSP(RTMP) Video Streaming Fail")
+                # print("RTSP(RTMP) Video Streaming Fail")
                 self.stop()
         except Exception as e:
             print(e)
@@ -48,5 +58,5 @@ class StreamingThread(QThread):
     def stop(self):
         if self.running:
             self.running = False
-            print("Streaming Stop")
+            # print("Streaming Stop")
         self.quit()

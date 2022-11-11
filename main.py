@@ -1,10 +1,12 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem, QLabel, QAction
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem, QMessageBox, QDialog
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QThread, Qt
+from PyQt5.QtCore import QThread
 from PyQt5 import QtCore, QtWidgets
 from qt_material import apply_stylesheet
 import ui.ui_main as ui_main
+import ui.ui_setCCTVDialog as ui_setCCTVDialog
+import ui.ui_deleteCCTVDialog as ui_deleteCCTVDialog
 from onvif import ONVIFCamera
 from threadMod import StreamingThread
 import stitching
@@ -26,39 +28,138 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
 # logger.addHandler(stream_handler)
 
-# scroll version
-# class MainWindow(QMainWindow, ui_scroll_main.Ui_MainWindow):
+# CCTV 등록 다이얼로그
+class SetCCTVDialog(QDialog, ui_setCCTVDialog.Ui_Dialog):
+    def __init__(self, channel_file):
+        super(SetCCTVDialog, self).__init__()
+        self.setupUi(self)
+        self.cctv = None
+        self.rtsp = None
+        self.ip = None
+        self.state = None
+        self.channel_file = channel_file
+        self.saveBtn.clicked.connect(self.save_btn_clicked)
+        self.cancelBtn.clicked.connect(self.close)
+        self.editBtn.clicked.connect(self.edit_cctv)
+        self.set_cctvCombo(['CCTV1', 'CCTV2', 'CCTV3', 'CCTV4', 'CCTV5', 'CCTV6', 'CCTV7', 'CCTV8', 'CCTV9', 'CCTV10', 'CCTV11', 'CCTV12'])
 
+    # CCTV 채널 ComboBox 세팅
+    def set_cctvCombo(self, cctv_list):
+        if os.path.exists(self.channel_file):
+            temp = []
+            with open(self.channel_file, 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    sLine = line.split(",")
+                    temp.append(sLine[0])
+                setItem = [x for x in cctv_list if x not in temp]
+                for i in setItem:
+                    self.cctvCombo.addItem(i)
+        else:
+            for i in cctv_list:
+                self.cctvCombo.addItem(i)
 
+    def save_btn_clicked(self):
+        self.cctv = self.cctvCombo.currentText()
+        self.rtsp = self.rtspEdit.text()
+        self.ip = self.ipEdit.text()
+        if not os.path.exists(self.channel_file):
+            file = open(self.channel_file, 'w')
+        else:
+            file = open(self.channel_file, 'a')
+
+        file.write(self.cctv + ',' + self.rtsp + ',' + self.ip + '\n')
+        file.close()
+        self.close()
+
+    def getName(self, cctv, channel_file):
+        self.cctv = cctv
+        self.channel_file = channel_file
+
+    def edit_cctv(self):
+        listOfFile = []
+        if os.path.exists(self.channel_file):
+            with open(self.channel_file, 'rt') as file:
+                lines = file.readlines()
+                if lines != "":
+                    for line in lines:
+                        sLine = line.split(',')
+                        if sLine[0] != self.cctv:
+                            listOfFile.append(line.strip())
+                        else:
+                            listOfFile.append(self.cctvCombo.currentText() + "," + self.rtspEdit.text() + "," + self.ipEdit.text())
+                            self.cctv = self.cctvCombo.currentText()
+                            self.rtsp = self.rtspEdit.text()
+                            self.ip = self.ipEdit.text()
+                            self.state = True
+                            
+            with open(self.channel_file, 'w') as file:
+                for line in listOfFile:
+                    if "\n" in line:
+                        file.writelines("%s" % line)
+                    else:
+                        file.writelines("%s\n" % line)
+        self.close()
+
+# CCTV 삭제 다이얼로그
+class DeleteCCTVDialog(QDialog, ui_deleteCCTVDialog.Ui_Dialog):
+    def __init__(self, channel_file):
+        super(DeleteCCTVDialog, self).__init__()
+        self.setupUi(self)
+        self.channel_file = channel_file
+        self.num = ""
+        self.flag = False
+        self.dltBtn.clicked.connect(self.delete_cctv)
+        self.clsBtn.clicked.connect(self.close)
+
+    def set_cctv_list(self):
+        if os.path.exists(self.channel_file):
+            with open(self.channel_file, 'r') as file:
+                cctvList = []
+                lines = file.readlines()
+                for line in lines:
+                    sLine = line.split(",")
+                    cctvList.append([int(sLine[0][4:]), sLine[0]])
+                cctvList.sort()
+                for num, item in cctvList:                   
+                    self.comboBox.addItem(item)
+                    self.flag = True
+                    
+        if not self.flag:
+            msgBox = QMessageBox()
+            msgBox.setStyleSheet('QMessageBox {background-color:#2E3436 }' '\nQPushButton {background-color:#2E3436; color:#FFFFFF}')
+            msgBox.addButton("<P><FONT COLOR='#FFFFFF'>OK</FONT></P>", QMessageBox.YesRole)
+            close = QMessageBox.information(msgBox, 'Message', "<P><FONT COLOR='#FFFFFF'>저장된 CCTV 채널 정보가 없습니다.</FONT></P>", QMessageBox.Ok)
+            if close == QMessageBox.Ok:
+                return False
+        else:
+            return True
+
+    def delete_cctv(self):
+        with open(self.channel_file, 'r+') as file:
+            lines = file.readlines()
+            self.num = self.comboBox.currentText()[4:]
+            file.truncate(0)
+        with open(self.channel_file, 'r+') as file:
+            for line in lines:
+                sLine = line.split(',')
+                if sLine[0] != self.comboBox.currentText():
+                    file.write(line)
+        self.close()
+        
 class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.threads = []
-        self.scroll = False
-
+        self.trigger = True
         self.channel_file = os.path.join(os.path.abspath(''), 'channel.conf')
-
-        # 첫번째 탭으로 시작
-        self.QStackedWidget.setCurrentIndex(0)
-
-        # Scroll version
-        if self.scroll:
-            self.scaleFactor = 0.0
-            self.panoramaLabel = QLabel()
-            # self.panoramaLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-            self.panoramaLabel.setScaledContents(True)
-            self.scrollArea.setWidget(self.panoramaLabel)
-            self.panoramaLabel.setCursor(Qt.OpenHandCursor)
-            self.scrollAreaLeft.mouseMoveEvent = self.mouse_move_event_left
-            self.scrollAreaLeft.mousePressEvent = self.mouse_press_event_left
-            self.scrollAreaLeft.mouseReleaseEvent = self.mouse_release_event_left
-            self.create_actions()
+        self.cctv = ['CCTV1', 'CCTV2', 'CCTV3', 'CCTV4', 'CCTV5', 'CCTV6', 'CCTV7', 'CCTV8', 'CCTV9', 'CCTV10', 'CCTV11', 'CCTV12']
 
         # 버튼 기능 구현
-        self.nextButton.clicked.connect(self.next_page)
-        self.previousButton.clicked.connect(self.prev_page)
         self.panoramaButton.clicked.connect(self.panorama_start)
+        self.addCCTVBtn.clicked.connect(self.add_cctv)
+        self.rmvCCTVBtn.clicked.connect(self.delete_cctv)
         self.upButton.pressed.connect(lambda: self.ptz_control('up'))
         self.downButton.pressed.connect(lambda: self.ptz_control('down'))
         self.leftButton.pressed.connect(lambda: self.ptz_control('left'))
@@ -73,8 +174,10 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.rightButton.released.connect(lambda: self.ptz_control('stop'))
         self.zoomOutButton.released.connect(lambda: self.ptz_control('stop'))
         self.zoomInButton.released.connect(lambda: self.ptz_control('stop'))
-        self.chComboBox.activated.connect(self.set_CCTV)
-
+        self.chComboBox.activated.connect(self.ptz_setting)
+        # CCTV 수정
+        self.chTreeWidget.itemDoubleClicked.connect(self.edit_cctv)
+        
         # PTZ Control Button
         self.upButton.setEnabled(False)
         self.downButton.setEnabled(False)
@@ -92,7 +195,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         
         # 실행 시 최대화면
         self.showMaximized()
-
+        
         self.streaming_thread = {}
         self.streaming_thread['1'] = StreamingThread()
         self.streaming_thread['2'] = StreamingThread()
@@ -104,10 +207,14 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.streaming_thread['8'] = StreamingThread()
         self.streaming_thread['9'] = StreamingThread()
         self.streaming_thread['10'] = StreamingThread()
-        self.set_CCTV_tree()
+        self.streaming_thread['11'] = StreamingThread()
+        self.streaming_thread['12'] = StreamingThread()
+        
+        # self.clickable(self.viewLabel_1).connect(lambda: self.set_fullscreen(self.rtsp_list[0], self.viewLabel_1, self.streaming_thread['1']))
+        self.set_cctv_tree()
 
     # CCTV Tree UI에 트리구조로 표시
-    def set_CCTV_tree(self):
+    def set_cctv_tree(self):
         self.chTreeWidget.clear()
         self.ip_list = []
         self.rtsp_list = []
@@ -123,11 +230,10 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
                 for line in lines:
                     sLine = line.split(',')
-                    numbers.append([sLine[0], sLine[1], sLine[2]])
+                    numbers.append([int(sLine[0][4:]), sLine[0], sLine[1], sLine[2]])
 
-                # numbers.sort()
-                i = 1
-                for cctv, rtsp, ip in numbers:
+                numbers.sort()
+                for num, cctv, rtsp, ip in numbers:
                     item = QTreeWidgetItem(self.chTreeWidget)
                     self.chComboBox.addItem(cctv)
                     self.chComboBox_2.addItem(cctv)
@@ -136,10 +242,95 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     self.ip_list.append(ip[:-1])
                     self.rtsp_list.append(rtsp)
                     self.chTreeWidget.addTopLevelItem(item)
-                    self.set_CCTV(cctv, rtsp, ip, i)
-                    i = i + 1
+                    if self.trigger:
+                        self.start_cctv(int(num), rtsp)
             self.ptzButton.pressed.connect(self.ptz_start)
+        self.trigger = False
 
+    # CCTV 등록 다이얼로그 실행
+    def add_cctv(self):
+        item = QTreeWidgetItem(self.chTreeWidget)
+        set_cctv_dlg = SetCCTVDialog(self.channel_file)
+        set_cctv_dlg.editBtn.setHidden(True)
+        set_cctv_dlg.exec_()     
+        item.setText(0, set_cctv_dlg.cctv)
+        item.setText(1, set_cctv_dlg.rtsp)
+        self.chComboBox.addItem(set_cctv_dlg.cctv)
+        self.chComboBox_2.addItem(set_cctv_dlg.cctv)
+        self.chTreeWidget.addTopLevelItem(item)
+        if set_cctv_dlg.rtsp != None:
+            num = set_cctv_dlg.cctv[4:]
+            self.streaming_thread[num].setRtsp(set_cctv_dlg.rtsp)
+            self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
+            self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
+            self.streaming_thread[num].start()
+        self.set_cctv_tree()
+
+    # 등록된 CCTV 수정
+    def edit_cctv(self, it):
+        set_cctv_dlg = SetCCTVDialog(self.channel_file)
+        set_cctv_dlg.cctvCombo.clear()
+        set_cctv_dlg.saveBtn.setHidden(True)
+        cctv = it.text(0)
+        channel_file = self.channel_file
+        set_cctv_dlg.getName(cctv, channel_file)
+        temp = []  # 저장된 cctv list 임시 저장
+        if os.path.exists(self.channel_file):
+            with open(self.channel_file, 'r') as file:
+                lines = file.readlines()
+                set_cctv_dlg.rtspEdit.clear()
+                set_cctv_dlg.ipEdit.clear()
+                if lines != "":
+                    for line in lines:
+                        sLine = line.split(',')
+                        temp.append(sLine[0])
+                        if sLine[0] == cctv:
+                            cctv = sLine[0]
+                            set_cctv_dlg.cctvCombo.addItem(cctv)
+                            set_cctv_dlg.rtspEdit.setText(sLine[1])
+                            set_cctv_dlg.ipEdit.setText(sLine[2])
+                            
+                setItem = [x for x in self.cctv if x not in temp]
+                # setItem.append(cctv)
+                # setItem.sort()
+                for i in setItem:
+                    set_cctv_dlg.cctvCombo.addItem(i)
+                set_cctv_dlg.cctvCombo.setCurrentText(cctv)
+        set_cctv_dlg.exec_()
+        if set_cctv_dlg.state:
+            num = str(set_cctv_dlg.cctv[4:])
+            cctv = cctv[4:]
+            if num != cctv:
+                self.streaming_thread[cctv].stop()                
+                self.streaming_thread[cctv] = StreamingThread()
+                # 라벨 초기화 스케줄러
+                sched = BackgroundScheduler()
+                sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
+                ) + datetime.timedelta(seconds=1), args=[eval('self.viewLabel_'+cctv)])
+                sched.start()
+                
+                self.streaming_thread[num].setRtsp(set_cctv_dlg.rtsp)
+                self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
+                self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
+                self.streaming_thread[num].start()
+        self.set_cctv_tree()
+
+    # cctv 삭제
+    def delete_cctv(self):
+        delete_cctv_dlg = DeleteCCTVDialog(self.channel_file)
+        if delete_cctv_dlg.set_cctv_list():
+            delete_cctv_dlg.exec_()
+            if delete_cctv_dlg.num != '':
+                num = str(delete_cctv_dlg.num)
+                self.streaming_thread[num].stop()                
+                self.streaming_thread[num] = StreamingThread()
+                # 라벨 초기화 스케줄러
+                sched = BackgroundScheduler()
+                sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
+                ) + datetime.timedelta(seconds=1), args=[eval('self.viewLabel_'+num)])
+                sched.start()
+        self.set_cctv_tree()
+        
     # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
     # Gui에서 응답없음 방지하기 위해 QThread 사용
     class PTZThread(QThread):
@@ -153,7 +344,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
         def run(self):
             self.parent.tour_start(self.cctv_ip, self.rtsp, self.num)
-
+        
     # PTZ Thread 실행, cctv ptz 여러대 동시 실행
     def ptz_start(self):
         print(self.ip_list)
@@ -164,43 +355,17 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
             self.ptz_Thread.start()
 
     # 메인Gui화면에 영상 부착 (스레드 실행)
-    def set_CCTV(self, channel, rtsp, cctv_ip, num):
-        # Index 0: No Channel
-        # if self.chComboBox.currentIndex() == 0:
-        #     self.streaming_thread.stop()
-        #     self.streaming_thread = StreamingThread()
-        #     # 라벨 초기화 스케줄러
-        #     sched = BackgroundScheduler()
-        #     sched.add_job(self.clear_channel, 'date', run_date=datetime.datetime.now(
-        #     ) + datetime.timedelta(seconds=1), args=[self.viewLabel])
-        #     sched.start()
-        # else:
-        #     channel, rtsp, cctv_ip = self.find_rtsp(self.chComboBox)
-        #     if rtsp != '' and channel != '':
-        #         self.streaming_thread.stop()
-        #         self.streaming_thread.wait(1)
-        #         self.streaming_thread = StreamingThread()
-        #         self.streaming_thread.setRtsp(rtsp)
-        #         self.streaming_thread.setSize(
-        #             self.viewLabel.width(), self.viewLabel.height())
-        #         self.streaming_thread.setLabel(self.viewLabel)
-        #         self.streaming_thread.start()
-        #         self.ptz_setting(cctv_ip)
-        #         logger.info("Channel Streaming Success")
-     
-        print(num)
-        num = str(num)
-        self.streaming_thread[num].stop()
-        self.streaming_thread[num].wait(1)
-        self.streaming_thread[num] = StreamingThread()
-        self.streaming_thread[num].setRtsp(rtsp)
-        self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
-        self.streaming_thread[num].setSize(self.viewLabel_1.width(), self.viewLabel_1.height())
-        self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
-        self.streaming_thread[num].start()
-        self.ptz_setting(cctv_ip)
-        logger.info("Channel Streaming Success")
-
+    def start_cctv(self, cctv, rtsp):
+        if rtsp != '' and cctv != '':
+            cctv = str(cctv)
+            self.streaming_thread[cctv].stop()
+            self.streaming_thread[cctv].wait(1)
+            self.streaming_thread[cctv] = StreamingThread()
+            self.streaming_thread[cctv].setRtsp(rtsp)
+            self.streaming_thread[cctv].setSize(eval('self.viewLabel_'+cctv).width(), eval('self.viewLabel_'+cctv).height())
+            self.streaming_thread[cctv].setLabel(eval('self.viewLabel_'+cctv))
+            self.streaming_thread[cctv].start()
+            
     # NoChannel => 라벨 초기화
     def clear_channel(self, cctv):
         cctv.clear()
@@ -216,15 +381,19 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 for line in lines:
                     sLine = line.split(',')
                     if sLine[0] == qComboBox.currentText():
+                        cctv = sLine[0]
                         rtsp = sLine[1].strip()
                         cctv_ip = sLine[2].strip()
                         break
-        cctv = sLine[0]
+                    else:
+                        cctv = "No Channel"
+        
         return cctv, rtsp, cctv_ip
 
     # PTZ 카메라 기본 변수 선언
-    def ptz_setting(self, cctv_ip):
-        if cctv_ip != "":
+    def ptz_setting(self):
+        channel, rtsp, cctv_ip = self.find_rtsp(self.chComboBox)
+        if channel != "No Channel":            
             try:
                 cam = ONVIFCamera(cctv_ip, 80, "admin", "tmzkdl123$")
                 media = cam.create_media_service()
@@ -246,7 +415,6 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 self.rightButton.setEnabled(True)
                 self.zoomOutButton.setEnabled(True)
                 self.zoomInButton.setEnabled(True)
-                logger.info(self.status)
                 return True
             except:
                 self.upButton.setEnabled(False)
@@ -262,7 +430,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 self.rightButton.setEnabled(False)
                 self.zoomOutButton.setEnabled(False)
                 self.zoomInButton.setEnabled(False)
-                logger.error("Error PTZ Connecting")
+                if channel != "No Channel":
+                    QtWidgets.QMessageBox.critical(self, "PTZ Error", "Error PTZ Connecting")
                 return False
 
     # PTZ 작동
@@ -347,10 +516,23 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     }
                 })
 
+    def tour_setting(self, ip):
+        if ip != "":            
+            try:
+                cam = ONVIFCamera(ip, 80, "admin", "tmzkdl123$")
+                media = cam.create_media_service()
+                self.ptz = cam.create_ptz_service()
+                self.media_profile = media.GetProfiles()[0]
+                self.status = self.ptz.GetStatus({
+                    'ProfileToken': self.media_profile.token,
+                })
+                return True
+            except:
+                QtWidgets.QMessageBox.critical(self, "PTZ Error", "Error PTZ Connecting")
+                return False
+            
     def tour_start(self, ip, rtsp, num):
-        # label에 표시하는 방법 다시 고안해야함
-        ip = ip
-        if self.ptz_setting(ip) is True:
+        if self.tour_setting(ip) is True:
             try:
                 preset = self.ptz.GetPresets({
                     'ProfileToken': self.media_profile.token
@@ -375,14 +557,9 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
 
                     self.ptz.GotoHomePosition(
                         {'ProfileToken': self.media_profile.token})
-                    eval('self.label_'+str(num+1)).setText("running")
             except:
                 logger.error("PTZ Preset")
-                
-            eval('self.label_'+str(num+1)).setText("Success")
-
         else:
-            eval('self.label_'+str(num+1)).setText("Fail")
             logger.error("preset tour fail")
 
     def create_folder(self, directory_path):
@@ -392,121 +569,27 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         except OSError:
             logger.error('Error: Creating directory. ' + directory_path)
 
-    # --------------------------ScrollArea--------------------------------------------
-    def adjust_scroll_bar(self, scrollBar, factor):
-        scrollBar.setValue(int(factor * scrollBar.value()
-                               + ((factor - 1) * scrollBar.pageStep() / 2)))
-
-    def normal_size(self):
-        print("nomal")
-        self.panoramaLabel.adjustSize()
-        self.scaleFactor = 1.0
-
-    def zoom_in(self):
-        self.scale_image(1.25)
-
-    def zoom_out(self):
-        self.scale_image(0.8)
-
-    def fit_to_window(self):
-        fit_to_window = self.fit_to_windowAct.isChecked()
-        self.scrollArea.setWidgetResizable(fit_to_window)
-        if not fit_to_window:
-            self.normal_size()
-        self.update_actions()
-
-    def scale_image(self, factor):
-        self.scaleFactor *= factor
-        self.panoramaLabel.resize(
-            self.scaleFactor * self.panoramaLabel.pixmap().size())
-
-        self.adjust_scroll_bar(self.scrollArea.horizontalScrollBar(), factor)
-        self.adjust_scroll_bar(self.scrollArea.verticalScrollBar(), factor)
-
-        self.zoom_inAct.setEnabled(self.scaleFactor < 3.0)
-        self.zoom_outAct.setEnabled(self.scaleFactor > 0.333)
-
-    # 현재 작동안함 이유 모름
-    def create_actions(self):
-        self.normal_sizeAct = QAction(
-            "&Normal Size", self, shortcut="Ctrl+S", enabled=False, triggered=self.normal_size)
-        self.zoom_inAct = QAction(
-            "Zoom &In (25%)", self, shortcut="Ctrl++", enabled=False, triggered=self.zoom_in)
-        self.zoom_outAct = QAction(
-            "Zoom &Out (25%)", self, shortcut="Ctrl+-", enabled=False, triggered=self.zoom_out)
-        self.fit_to_windowAct = QAction("&Fit to Window", self, enabled=False,
-                                        checkable=True, shortcut="Ctrl+F", triggered=self.fit_to_window)
-
-    def update_actions(self):
-        self.normal_sizeAct.setEnabled(not self.fit_to_windowAct.isChecked())
-        self.zoom_inAct.setEnabled(not self.fit_to_windowAct.isChecked())
-        self.zoom_outAct.setEnabled(not self.fit_to_windowAct.isChecked())
-
-    def mouse_press_event_left(self, event):
-        self.pressed = True
-        self.panoramaLabel.setCursor(Qt.ClosedHandCursor)
-        self.initialPosX = self.scrollArea.horizontalScrollBar().value() + \
-            event.pos().x()
-        self.initialPosY = self.scrollArea.verticalScrollBar().value() + \
-            event.pos().y()
-
-    def mouse_release_event_left(self, event):
-        self.pressed = False
-        self.panoramaLabel.setCursor(Qt.OpenHandCursor)
-        self.initialPosX = self.scrollArea.horizontalScrollBar().value()
-        self.initialPosY = self.scrollArea.verticalScrollBar().value()
-
-    def mouse_move_event_left(self, event):
-        if self.pressed:
-            self.scrollArea.horizontalScrollBar().setValue(
-                self.initialPosX - event.pos().x())
-            self.scrollArea.verticalScrollBar().setValue(self.initialPosY - event.pos().y())
-    # --------------------------ScrollArea--------------------------------------------
-
     def panorama_start(self):
-        print("panorama click")
-        # 가져오고자 하는 폴더 주소
-        path = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
-        # path="imgs/"
-        file_list = os.listdir(path)
-        # 확장자명 입력
-        file_list_jpg = [
-            path + file for file in file_list if file.endswith(".jpg")]
-        print(file_list_jpg)
-        image_folder = "imgs/result/{}/".format(
-            datetime.datetime.today().strftime("%Y-%m-%d"))
-        self.create_folder(image_folder)
-        stitcher = stitching.Stitcher()
-        panoramaImage = stitcher.stitch(file_list_jpg)
-        cv2.imwrite(image_folder + "result.jpg", panoramaImage)
-        sleep(2)
-
-        self.panoramaLabel.setPixmap(QPixmap(image_folder + "result.jpg").scaled(
-            self.panoramaLabel.width(), self.panoramaLabel.height()))
-                
-
-        if self.scroll:
-            self.scaleFactor = 1.0
-
-            self.fit_to_windowAct.setEnabled(True)
-            self.update_actions()
-
-            if not self.fit_to_windowAct.isChecked():
-                self.panoramaLabel.adjustSize()
-
-    # 메인 탭 변경 버튼 클릭
-    def next_page(self):
-        currentpage = self.QStackedWidget.currentIndex()
-        self.QStackedWidget.setCurrentIndex(currentpage+1)
-        if currentpage+1 > 2:
-            self.QStackedWidget.setCurrentIndex(0)
-
-    def prev_page(self):
-        currentpage = self.QStackedWidget.currentIndex()
-        self.QStackedWidget.setCurrentIndex(currentpage-1)
-        if currentpage-1 < 0:
-            self.QStackedWidget.setCurrentIndex(2)
-
+        try:
+            print("panorama click")
+            # 가져오고자 하는 폴더 주소
+            path = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
+            # path="imgs/"
+            file_list = os.listdir(path)
+            # 확장자명 입력
+            file_list_jpg = [
+                path + file for file in file_list if file.endswith(".jpg")]
+            print(file_list_jpg)
+            image_folder = "imgs/result/{}/".format(
+                datetime.datetime.today().strftime("%Y-%m-%d"))
+            self.create_folder(image_folder)
+            stitcher = stitching.Stitcher()
+            panoramaImage = stitcher.stitch(file_list_jpg)
+            cv2.imwrite(image_folder + "result.jpg", panoramaImage)
+        except FileNotFoundError:
+            QMessageBox.critical(self, "Stitching Error", "No images")
+        except:
+            print("Stitching Error")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
