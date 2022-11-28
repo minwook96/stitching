@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem, QMessageBox, QDialog
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QThread
+from PyQt5.QtGui import QPixmap
 from PyQt5 import QtCore, QtWidgets
 from qt_material import apply_stylesheet
 import ui.ui_main as ui_main
@@ -151,6 +151,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        QApplication.processEvents()
         self.threads = []
         self.trigger = True
         self.channel_file = os.path.join(os.path.abspath(''), 'channel.conf')
@@ -195,7 +196,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         
         # 실행 시 최대화면
         self.showMaximized()
-        
+                
         self.streaming_thread = {}
         self.streaming_thread['1'] = StreamingThread()
         self.streaming_thread['2'] = StreamingThread()
@@ -210,12 +211,27 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.streaming_thread['11'] = StreamingThread()
         self.streaming_thread['12'] = StreamingThread()
         
+        self.ptz_Thread = {}
+        self.ptz_Thread['1'] = None
+        self.ptz_Thread['2'] = None
+        self.ptz_Thread['3'] = None
+        self.ptz_Thread['4'] = None
+        self.ptz_Thread['5'] = None
+        self.ptz_Thread['6'] = None
+        self.ptz_Thread['7'] = None
+        self.ptz_Thread['8'] = None
+        self.ptz_Thread['9'] = None
+        self.ptz_Thread['10'] = None
+        self.ptz_Thread['11'] = None
+        self.ptz_Thread['12'] = None
+        
         # self.clickable(self.viewLabel_1).connect(lambda: self.set_fullscreen(self.rtsp_list[0], self.viewLabel_1, self.streaming_thread['1']))
         self.set_cctv_tree()
 
     # CCTV Tree UI에 트리구조로 표시
     def set_cctv_tree(self):
         self.chTreeWidget.clear()
+        self.cctv_list = []
         self.ip_list = []
         self.rtsp_list = []
         if os.path.exists(self.channel_file):
@@ -239,9 +255,14 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                     self.chComboBox_2.addItem(cctv)
                     item.setText(0, cctv)
                     item.setText(1, rtsp)
+                    self.cctv_list.append(cctv)
                     self.ip_list.append(ip[:-1])
-                    self.rtsp_list.append(rtsp)
+                    self.rtsp_list.append(rtsp)                
                     self.chTreeWidget.addTopLevelItem(item)
+                    
+                    setItem = [x for x in self.cctv if x not in self.cctv_list]
+                    # print(setItem)
+                    
                     if self.trigger:
                         self.start_cctv(int(num), rtsp)
             self.ptzButton.pressed.connect(self.ptz_start)
@@ -261,8 +282,11 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         if set_cctv_dlg.rtsp != None:
             num = set_cctv_dlg.cctv[4:]
             self.streaming_thread[num].setRtsp(set_cctv_dlg.rtsp)
+            self.streaming_thread[num].setCctv(num)
             self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
             self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
+            self.streaming_thread[num].changePixmap.connect(self.set_image)
+
             self.streaming_thread[num].start()
         self.set_cctv_tree()
 
@@ -300,6 +324,7 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         if set_cctv_dlg.state:
             num = str(set_cctv_dlg.cctv[4:])
             cctv = cctv[4:]
+            print(cctv)
             if num != cctv:
                 self.streaming_thread[cctv].stop()                
                 self.streaming_thread[cctv] = StreamingThread()
@@ -310,8 +335,10 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 sched.start()
                 
                 self.streaming_thread[num].setRtsp(set_cctv_dlg.rtsp)
+                self.streaming_thread[num].setCctv(num)
                 self.streaming_thread[num].setSize(eval('self.viewLabel_'+num).width(), eval('self.viewLabel_'+num).height())
                 self.streaming_thread[num].setLabel(eval('self.viewLabel_'+num))
+                self.streaming_thread[num].changePixmap.connect(self.set_image)
                 self.streaming_thread[num].start()
         self.set_cctv_tree()
 
@@ -331,41 +358,24 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 sched.start()
         self.set_cctv_tree()
         
-    # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
-    # Gui에서 응답없음 방지하기 위해 QThread 사용
-    class PTZThread(QThread):
-        # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
-        def __init__(self, parent, cctv_ip, rtsp, num):
-            super().__init__(parent)
-            self.parent = parent  # self.parent를 사용하여 WindowClass 위젯을 제어할 수 있다.
-            self.cctv_ip = cctv_ip
-            self.rtsp = rtsp
-            self.num = num
-
-        def run(self):
-            self.parent.tour_start(self.cctv_ip, self.rtsp, self.num)
-        
-    # PTZ Thread 실행, cctv ptz 여러대 동시 실행
-    def ptz_start(self):
-        print(self.ip_list)
-        for i in range(0, len(self.ip_list)):
-            self.ptz_Thread = self.PTZThread(
-                self, self.ip_list[i], self.rtsp_list[i], i)
-            self.threads.append(self.ptz_Thread)
-            self.ptz_Thread.start()
-
     # 메인Gui화면에 영상 부착 (스레드 실행)
     def start_cctv(self, cctv, rtsp):
         if rtsp != '' and cctv != '':
             cctv = str(cctv)
-            self.streaming_thread[cctv].stop()
-            self.streaming_thread[cctv].wait(1)
+            # self.streaming_thread[cctv].stop()
+            # self.streaming_thread[cctv].wait(1)
             self.streaming_thread[cctv] = StreamingThread()
             self.streaming_thread[cctv].setRtsp(rtsp)
+            self.streaming_thread[cctv].setCctv(cctv)
             self.streaming_thread[cctv].setSize(eval('self.viewLabel_'+cctv).width(), eval('self.viewLabel_'+cctv).height())
             self.streaming_thread[cctv].setLabel(eval('self.viewLabel_'+cctv))
+            self.streaming_thread[cctv].changePixmap.connect(self.set_image)
             self.streaming_thread[cctv].start()
-            
+    
+    # @QtCore.pyqtSlot(str, QPixmap)
+    def set_image(self, cctv:str, pixmap:QPixmap):
+        eval('self.viewLabel_'+cctv).setPixmap(pixmap)
+        
     # NoChannel => 라벨 초기화
     def clear_channel(self, cctv):
         cctv.clear()
@@ -440,7 +450,6 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         # if self.ptz_setting(self.chComboBox.currentText()) is True:
         if command == "stop":
             self.ptz.Stop({'ProfileToken': self.media_profile.token})
-
         else:
             if command == "up":
                 self.ptz.ContinuousMove({
@@ -515,6 +524,29 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                         }
                     }
                 })
+                
+   # QThread 클래스 선언하기, QThread 클래스를 쓰려면 QtCore 모듈을 import 해야함.
+    # Gui에서 응답없음 방지하기 위해 QThread 사용
+    class PTZThread(QThread):
+        # parent는 WndowClass에서 전달하는 self이다.(WidnowClass의 인스턴스)
+        def __init__(self, parent, cctv_ip, rtsp, num):
+            super().__init__(parent)
+            self.parent = parent  # self.parent를 사용하여 WindowClass 위젯을 제어할 수 있다.
+            self.cctv_ip = cctv_ip
+            self.rtsp = rtsp
+            self.num = num
+
+        def run(self):
+            self.parent.tour_start(self.cctv_ip, self.rtsp, self.num)
+        
+    # PTZ Thread 실행, cctv ptz 여러대 동시 실행
+    def ptz_start(self):
+        print(self.ip_list)
+        for i in range(0, len(self.ip_list)):
+            self.ptz_Thread[str(i)] = self.PTZThread(
+                self, self.ip_list[i], self.rtsp_list[i], i)
+            self.threads.append(self.ptz_Thread[str(i)])
+            self.ptz_Thread[str(i)].start()
 
     def tour_setting(self, ip):
         if ip != "":            
@@ -574,7 +606,6 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
             print("panorama click")
             # 가져오고자 하는 폴더 주소
             path = "imgs/{}/".format(datetime.datetime.today().strftime("%Y-%m-%d"))
-            # path="imgs/"
             file_list = os.listdir(path)
             # 확장자명 입력
             file_list_jpg = [
@@ -591,6 +622,20 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         except:
             print("Stitching Error")
 
+    # 프로그램 종료 이벤트
+    # def closeEvent(self, event):
+    #     msgBox = QMessageBox()
+    #     msgBox.setStyleSheet('QMessageBox {background-color:#2E3436 }\nQPushButton {background-color:#2E3436; color:#FFFFFF}')
+    #     msgBox.addButton("<P><FONT COLOR='#FFFFFF'>Yes</FONT></P>", QMessageBox.YesRole)
+    #     msgBox.addButton("<P><FONT COLOR='#FFFFFF'>No</FONT></P>", QMessageBox.NoRole)
+    #     close = QMessageBox.question(msgBox, 'Message', "<P><FONT COLOR='#FFFFFF'>Are you sure to quit?</FONT></P>", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+    #     if close == QMessageBox.Yes:
+    #         self.flag = 1
+    #         self.stopStreamingThread()
+    #         event.accept()
+    #     else:
+    #         event.ignore()
+            
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
