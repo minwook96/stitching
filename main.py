@@ -5,10 +5,11 @@ import sys
 from time import sleep
 
 import cv2
+import numpy as np
 from apscheduler.schedulers.background import BackgroundScheduler
 from PyQt5.QtCore import QThread
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QMessageBox,
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QMessageBox, QShortcut,
                              QTreeWidgetItem)
 from qt_material import apply_stylesheet
 
@@ -38,6 +39,12 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.channel_file = os.path.join(os.path.abspath(''), 'channel.conf')
         self.cctv = ['CCTV1', 'CCTV2', 'CCTV3', 'CCTV4', 'CCTV5', 'CCTV6',
                      'CCTV7', 'CCTV8', 'CCTV9', 'CCTV10', 'CCTV11', 'CCTV12']
+
+        # 로고
+        self.ci.setPixmap(QPixmap(os.path.join(
+            os.path.abspath('ui'), 'skysys.png')))
+        self.setWindowIcon(
+            QIcon(os.path.join(os.path.abspath('ui'), 'skysysIcon.png')))
 
         # 버튼 기능 구현
         self.panoramaButton.clicked.connect(self.panorama_start)
@@ -106,6 +113,15 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         self.ptz_Thread['12'] = None
 
         self.set_cctv_tree()
+        
+        self.setFullscreen = QShortcut(QKeySequence('F11'), self)
+        self.setFullscreen.activated.connect(self.toggleFullScreen)
+
+    def toggleFullScreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
 
     # CCTV Tree UI에 트리구조로 표시
     def set_cctv_tree(self):
@@ -424,7 +440,8 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
         for i in range(0, len(self.ip_list)):
             self.ptz_Thread[str(i)] = self.PTZThread(
                 self, self.ip_list[i], self.rtsp_list[i], i)
-            self.threads.append(self.ptz_Thread[str(i)])
+            # self.threads.append(self.ptz_Thread[str(i)])
+            # self.ptz_Thread[str(i)].setDaemon(True)
             self.ptz_Thread[str(i)].start()
 
     def tour_setting(self, ip):
@@ -448,19 +465,34 @@ class MainWindow(QMainWindow, ui_main.Ui_MainWindow):
                 preset = self.ptz.GetPresets({
                     'ProfileToken': self.media_profile.token
                 })
+
                 for i in range(0, len(preset)):
                     self.ptz.GotoPreset({
                         'ProfileToken': self.media_profile.token,
                         'PresetToken': preset[i].token
                     })
-                    cap = cv2.VideoCapture(rtsp)                    
+                    cap = cv2.VideoCapture(rtsp)
                     success, frame = cap.read()
+                    # 입력 영상 크기 및 출력 영상 크기
+                    h, w = frame.shape[:2]
+
+                    # 모서리 점들의 좌표, 드래그 상태 여부
+                    # 나중에 미포에서 이 좌표를 변경해야함
+                    srcQuad = np.array(
+                        [[30, 30], [30, h-30], [w-30, h-30], [w-30, 30]], np.float32)
+                    dstQuad = np.array(
+                        [[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]], np.float32)
                     image_folder = "imgs/{}/".format(
                         datetime.datetime.today().strftime("%Y-%m-%d"))
                     image_name = f"panorama{num+1}_{i}.jpg"
                     self.create_folder(image_folder)
+                    
                     sleep(3)
 
+                    # 투시 변환
+                    pers = cv2.getPerspectiveTransform(srcQuad, dstQuad)
+                    frame = cv2.warpPerspective(
+                        frame, pers, (w, h), flags=cv2.INTER_CUBIC)
                     cv2.imwrite(image_folder + image_name, frame)  # 이미지 캡처
 
                     sleep(3)
@@ -542,6 +574,6 @@ if __name__ == "__main__":
     'light_teal.xml',
     'light_yellow.xml']
     """
-    apply_stylesheet(app, theme='light_blue.xml')
+    apply_stylesheet(app, theme='dark_blue.xml')
     window.show()
     sys.exit(app.exec())

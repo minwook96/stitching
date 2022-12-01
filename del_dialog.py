@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QDialog, QMessageBox
 
 import ui.ui_deleteCCTVDialog as ui_deleteCCTVDialog
-
+import os
 
 class DeleteCCTVDialog(QDialog, ui_deleteCCTVDialog.Ui_Dialog):  # CCTV 삭제 다이얼로그
     def __init__(self, channel_file):

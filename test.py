@@ -43,7 +43,7 @@ def onMouse(event, x, y, flags, param):
                 dy = y - ptOld[1]
 
                 srcQuad[i] += (dx, dy)
-
+                print(srcQuad[i])
                 cpy = drawROI(src, srcQuad)
                 cv2.imshow('img', cpy)
                 ptOld = (x, y)
@@ -51,11 +51,11 @@ def onMouse(event, x, y, flags, param):
 
 
 # 입력 이미지 불러오기
-src = cv2.imread('imgs/2022-10-31/7.jpg')
-src = cv2.resize(src, dsize=(1280, 720), interpolation=cv2.INTER_AREA)
+src = cv2.imread('imgs/2022-10-13/1.jpg')
 if src is None:
     print('Image open failed!')
     sys.exit()
+src = cv2.resize(src, dsize=(1280, 720), interpolation=cv2.INTER_AREA)
 
 # 입력 영상 크기 및 출력 영상 크기
 h, w = src.shape[:2]
@@ -81,6 +81,8 @@ while True:
         cv2.destroyWindow('img')
         sys.exit()
 
+print(srcQuad)
+print(dstQuad)
 # 투시 변환
 pers = cv2.getPerspectiveTransform(srcQuad, dstQuad)
 dst = cv2.warpPerspective(src, pers, (dw, dh), flags=cv2.INTER_CUBIC)

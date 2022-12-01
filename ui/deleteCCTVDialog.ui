@@ -10,6 +10,11 @@
     <height>82</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <family>Ubuntu</family>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
@@ -19,6 +24,11 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QComboBox" name="comboBox">
+     <property name="font">
+      <font>
+       <family>Ubuntu</family>
+      </font>
+     </property>
      <property name="styleSheet">
       <string notr="true"/>
      </property>
@@ -41,6 +51,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="dltBtn">
+       <property name="font">
+        <font>
+         <family>Ubuntu</family>
+        </font>
+       </property>
        <property name="styleSheet">
         <string notr="true"/>
        </property>
@@ -51,6 +66,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="clsBtn">
+       <property name="font">
+        <font>
+         <family>Ubuntu</family>
+        </font>
+       </property>
        <property name="styleSheet">
         <string notr="true"/>
        </property>

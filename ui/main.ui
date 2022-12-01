@@ -19,6 +19,11 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="font">
+   <font>
+    <family>Ubuntu</family>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>SKYSYS-Monitoring System</string>
   </property>
@@ -29,64 +34,8 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_5">
     <item>
-     <widget class="QWidget" name="topLayout" native="true">
-      <layout class="QHBoxLayout" name="horizontalLayout_8">
-       <property name="leftMargin">
-        <number>5</number>
-       </property>
-       <property name="topMargin">
-        <number>5</number>
-       </property>
-       <property name="rightMargin">
-        <number>5</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <item>
-        <widget class="QLabel" name="ci">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>250</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="pixmap">
-          <pixmap>../../.designer/backup/skysys.png</pixmap>
-         </property>
-         <property name="scaledContents">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>13</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
      <widget class="QWidget" name="QWidget" native="true">
-      <layout class="QHBoxLayout" name="page1Layout">
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
        <property name="spacing">
         <number>5</number>
        </property>
@@ -103,10 +52,10 @@
         <number>5</number>
        </property>
        <item>
-        <widget class="QWidget" name="pageWidget1" native="true">
+        <widget class="QWidget" name="Widget" native="true">
          <layout class="QHBoxLayout" name="horizontalLayout_12">
           <property name="rightMargin">
-           <number>0</number>
+           <number>9</number>
           </property>
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -114,23 +63,27 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLabel" name="liveLabel">
+             <widget class="QLabel" name="ci">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="font">
-               <font>
-                <family>나눔고딕</family>
-                <pointsize>12</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
+              <property name="maximumSize">
+               <size>
+                <width>250</width>
+                <height>40</height>
+               </size>
               </property>
               <property name="text">
-               <string>라이브</string>
+               <string/>
+              </property>
+              <property name="pixmap">
+               <pixmap>../../.designer/backup/skysys.png</pixmap>
+              </property>
+              <property name="scaledContents">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -144,7 +97,8 @@
               </property>
               <property name="font">
                <font>
-                <family>나눔고딕</family>
+                <family>Ubuntu</family>
+                <pointsize>10</pointsize>
                </font>
               </property>
               <property name="text">
@@ -155,14 +109,15 @@
             <item>
              <widget class="QTreeWidget" name="chTreeWidget">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
               <property name="font">
                <font>
-                <family>나눔고딕</family>
+                <family>Ubuntu</family>
+                <pointsize>10</pointsize>
                </font>
               </property>
               <column>
@@ -192,7 +147,7 @@
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>150</width>
+                  <width>160</width>
                   <height>20</height>
                  </size>
                 </property>
@@ -201,16 +156,28 @@
               <item>
                <widget class="QPushButton" name="addCCTVBtn">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
-                  <height>16777215</height>
+                  <width>30</width>
+                  <height>30</height>
                  </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <family>Ubuntu</family>
+                  <pointsize>10</pointsize>
+                 </font>
                 </property>
                 <property name="layoutDirection">
                  <enum>Qt::LeftToRight</enum>
@@ -223,16 +190,28 @@
               <item>
                <widget class="QPushButton" name="rmvCCTVBtn">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
-                  <height>16777215</height>
+                  <width>30</width>
+                  <height>30</height>
                  </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <family>Ubuntu</family>
+                  <pointsize>10</pointsize>
+                 </font>
                 </property>
                 <property name="layoutDirection">
                  <enum>Qt::LeftToRight</enum>
@@ -270,7 +249,8 @@
               </property>
               <property name="font">
                <font>
-                <family>나눔고딕</family>
+                <family>Ubuntu</family>
+                <pointsize>10</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -311,7 +291,8 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
+                  <pointsize>10</pointsize>
                  </font>
                 </property>
                </widget>
@@ -357,7 +338,8 @@
               </property>
               <property name="font">
                <font>
-                <family>나눔고딕</family>
+                <family>Ubuntu</family>
+                <pointsize>10</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -388,7 +370,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
                   <pointsize>12</pointsize>
                  </font>
                 </property>
@@ -412,7 +394,7 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
                     <pointsize>12</pointsize>
                    </font>
                   </property>
@@ -431,8 +413,10 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
                     <pointsize>12</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
                    </font>
                   </property>
                   <property name="text">
@@ -450,7 +434,7 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
                     <pointsize>12</pointsize>
                    </font>
                   </property>
@@ -471,7 +455,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
                   <pointsize>12</pointsize>
                  </font>
                 </property>
@@ -497,7 +481,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
                   <pointsize>12</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
@@ -518,7 +502,8 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
+                  <pointsize>10</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -541,7 +526,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <family>나눔고딕</family>
+                  <family>Ubuntu</family>
                   <pointsize>12</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
@@ -603,7 +588,8 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
+                    <pointsize>10</pointsize>
                    </font>
                   </property>
                   <property name="text">
@@ -628,6 +614,22 @@
                  </spacer>
                 </item>
                </layout>
+              </item>
+              <item>
+               <spacer name="verticalSpacer_6">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Preferred</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
               </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -660,7 +662,8 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
+                    <pointsize>10</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -714,7 +717,8 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>나눔고딕</family>
+                    <family>Ubuntu</family>
+                    <pointsize>10</pointsize>
                    </font>
                   </property>
                   <property name="text">
@@ -784,6 +788,11 @@
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="font">
+                 <font>
+                  <family>Ubuntu</family>
+                 </font>
+                </property>
                 <property name="text">
                  <string>Panorama Start</string>
                 </property>
@@ -825,8 +834,14 @@
             </item>
             <item>
              <widget class="QLabel" name="label">
+              <property name="font">
+               <font>
+                <family>Ubuntu</family>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
               <property name="text">
-               <string>V1.0</string>
+               <string>version 1.0</string>
               </property>
              </widget>
             </item>
@@ -847,7 +862,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -874,7 +889,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -901,7 +916,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -928,7 +943,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -955,7 +970,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -982,7 +997,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -1036,7 +1051,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -1072,7 +1087,7 @@
               </property>
               <property name="font">
                <font>
-                <family>나눔고딕</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -1099,7 +1114,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -1126,7 +1141,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
@@ -1153,7 +1168,7 @@
               </property>
               <property name="font">
                <font>
-                <family>aakar</family>
+                <family>Ubuntu</family>
                 <pointsize>15</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
